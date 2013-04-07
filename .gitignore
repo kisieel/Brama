@@ -10,6 +10,8 @@ tmp/
 *.tmp
 *.bak
 *.swp
+*.b#*
+*.mpd
 *~.nib
 local.properties
 .classpath
