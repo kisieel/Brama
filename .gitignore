@@ -11,6 +11,7 @@ tmp/
 *.bak
 *.swp
 *.b#*
+*.s#*
 *.mpd
 *~.nib
 local.properties
