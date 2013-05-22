@@ -72,11 +72,11 @@ void openGate()
 	_delay_ms(2000);
 	PORTC &= ~(1 << PC6);
 }
-unsigned char checkNumber()
+unsigned char checkNumber(int corr)
 {
 	for(int i = 0; i < 9; i++)
 	{
-		if(callingNumber[i] != phoneBuffer[i + 23])
+		if(callingNumber[i] != phoneBuffer[i + 23 + (2*corr)])
 			return 0;
 	}	
 	
@@ -100,15 +100,31 @@ void bufferCheck()
 				char buff[5];
 				itoa(num, buff, 10);
 				
+				int korekcja = 0;				
+				if(num > 99)
+				{
+					korekcja = 2;
+				}
+				else if(num > 9)
+				{
+					korekcja = 1;
+				}
+				
 						
 				bufferLength = 1;	
 				uart_puts("AT+CPBR=");
-				uart_put(buff[0]);
+				
+				for(int i = 0; i < korekcja+1; i++)
+					uart_put(buff[i]);
+				
 				uart_put('\r');
 				
 				_delay_ms(200);
 				
-				if(checkNumber() == 1)
+		
+				
+				
+				if(checkNumber(korekcja) == 1)
 				{
 					openGate();
 					break;
