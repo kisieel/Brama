@@ -13,7 +13,7 @@
 
 MCU          = at90usb162
 ARCH		 = AVR8
-F_CPU        = 1000000
+F_CPU        = 8000000
 F_USB        = 8000000
 OPTIMIZATION = s
 TARGET       = main
