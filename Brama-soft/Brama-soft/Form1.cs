@@ -27,6 +27,9 @@ namespace Brama_soft
             button7.Enabled = false;
             button3.Enabled = true;
             button4.Enabled = true;
+            button6.Enabled = false;
+            comboBox1.Enabled = false;
+            button8.Enabled = true;
         }
 
         private void Disconnected()
@@ -35,6 +38,9 @@ namespace Brama_soft
             button7.Enabled = true;
             button3.Enabled = false;
             button4.Enabled = false;
+            button6.Enabled = true;
+            comboBox1.Enabled = true;
+            button8.Enabled = false;
         }
 
         private void RefreshPorts()
@@ -120,7 +126,7 @@ namespace Brama_soft
 
         private void button4_Click(object sender, EventArgs e)
         {
-            port.Write("open\r\n");
+            port.Write(((char)0x1B).ToString());
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -132,6 +138,22 @@ namespace Brama_soft
         private void button2_Click(object sender, EventArgs e)
         {
             listBox1.Items.Clear();
+        }
+
+        private void textBox1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+                button1_Click(null, null);
+        }
+
+        private void button9_Click(object sender, EventArgs e)
+        {
+            textBox2.Clear();
+        }
+
+        private void button8_Click(object sender, EventArgs e)
+        {
+            port.Write("d");
         }
     }
 }

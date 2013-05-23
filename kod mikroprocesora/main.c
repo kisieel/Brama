@@ -1,5 +1,6 @@
 #include "main.h"
 #include <stdlib.h>
+#include <avr/eeprom.h>
 
 USB_ClassInfo_CDC_Device_t VirtualSerial_CDC_Interface =
 	{
@@ -49,9 +50,9 @@ unsigned char uart_get( void )
 }
 
 static volatile int16_t phoneBuffer[100];
-static volatile int16_t bufferLength = 0;
+static volatile int16_t bufferLength = 1;
 static volatile int16_t callingNumber[10];
-static volatile int numbers = 2;
+static volatile int16_t numbers = 0;
 
 unsigned char stringCheck(char *s)
 {
@@ -119,10 +120,8 @@ void bufferCheck()
 				
 				uart_put('\r');
 				
-				_delay_ms(200);
-				
+				_delay_ms(300);
 		
-				
 				
 				if(checkNumber(korekcja) == 1)
 				{
@@ -149,10 +148,14 @@ void bufferCheck()
 
 }
 
+volatile static bool bDebug = false;
+volatile int16_t iRead = 0;
+volatile static bool ConfigSuccess = true;
 SIGNAL(USART1_RX_vect)
 {
 	int16_t c = UDR1;
-	fputs(&c, &USBSerialStream);
+	if(bDebug && ConfigSuccess)
+		fputs(&c, &USBSerialStream); // do debugu
 	
 	phoneBuffer[bufferLength] = c;
 	bufferLength++;		
@@ -160,7 +163,7 @@ SIGNAL(USART1_RX_vect)
 
 void TelephoneInit()
 {	
-	uart_puts("AT+CGMI\r\n");
+	uart_puts("AT+CGMI\r");
 	
 	_delay_ms(1000);
 	
@@ -183,12 +186,14 @@ void TelephoneInit()
 		_delay_ms(200);
 		PORTC &= ~(1 << PC7);
 		
+		_delay_ms(1000);
+		uart_puts("AT+CGMI\r");
+		_delay_ms(1000);
 	}
 
 	bufferLength = 1;
 
 }
-
 int main(void)
 {
 	SetupHardware();	 
@@ -200,35 +205,80 @@ int main(void)
 	_delay_ms(1000);
 	
 	TelephoneInit(); 
+	
+	numbers = eeprom_read_word(( uint16_t *)1) ;
 
 	for (;;)
 	{
-		int16_t b = CDC_Device_ReceiveByte(&VirtualSerial_CDC_Interface);
-		
-		if(b > -1)
+	
+		if(ConfigSuccess)
 		{
-			if(b == 'a')
+			int16_t b = CDC_Device_ReceiveByte(&VirtualSerial_CDC_Interface);
+			
+			if(b > -1)
 			{
+					
+				if(b == '*')
+					iRead = 0;	
 				
-				for(int i = 0; i < bufferLength; i++)
-					fputs(&phoneBuffer[i], &USBSerialStream);
-		
+				if(b == 0x1A)
+				{
+					numbers = iRead;
+					eeprom_write_word((uint16_t*)1, (uint16_t)numbers);
+				}			
+					
+				if(b == '\r' || b == 0x1A)
+				{
+					uart_put('\r');
+					_delay_ms(300);
+					bufferLength = 1;
+					
+					fputs("ok\r\n", &USBSerialStream);
+				}
 				
+				if(b == '*' || b == '\r')
+				{
+					iRead++;
+					uart_puts("AT+CPBW=");
+					
+					char buff[5];
+					itoa(iRead, buff, 10);
+					
+					int korekcja = 0;				
+					if(iRead > 99)
+					{
+						korekcja = 2;
+					}
+					else if(iRead > 9)
+					{
+						korekcja = 1;
+					}
+					
+					for(int i = 0; i < korekcja+1; i++)
+						uart_put(buff[i]);
+						
+					uart_put(',');
+				}
+
+				if(b > 47 && b < 58)
+				{
+					uart_put(b);			
+				}
+				
+				if(b == 0x1B)
+					openGate();
+					
+				if(b == 'd')
+					bDebug = !bDebug;
+									
 			}
-			else if(b == 'b')
-			bufferLength = 1;
-			else
-			uart_put(b);
-				
+			
+			CDC_Device_USBTask(&VirtualSerial_CDC_Interface);
+			USB_USBTask();
 		}
-		
-		CDC_Device_USBTask(&VirtualSerial_CDC_Interface);
-		USB_USBTask();
-		
-		PORTB ^= (1 << PB5);	
-		
+			
 		bufferCheck();
-		
+			
 	}
 }
 
@@ -247,7 +297,7 @@ void SetupHardware(void)
 	wdt_disable();	
 	
 	DDRB = (1 << PB5) | (1 << PB7) | (1 << PB4) | (1 << PB6);	
-	DDRC = (1 << PC6) | (1 << PC7);	
+	DDRC = (1 << PC6) | (1 << PC7);	//ledy i buttony
 	
 	DDRD &= ~(1 << PD0);
 	PORTD |= (1 << PD0); // wybor trybu
@@ -273,10 +323,7 @@ void EVENT_USB_Device_Disconnect(void)
 
 void EVENT_USB_Device_ConfigurationChanged(void)
 {
-	bool ConfigSuccess = true;
-
 	ConfigSuccess &= CDC_Device_ConfigureEndpoints(&VirtualSerial_CDC_Interface);
-
 	
 	if(ConfigSuccess)
 	{
