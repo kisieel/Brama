@@ -1,6 +1,5 @@
 #include "main.h"
-#include <stdlib.h>
-#include <avr/eeprom.h>
+
 
 USB_ClassInfo_CDC_Device_t VirtualSerial_CDC_Interface =
 	{
@@ -29,7 +28,13 @@ USB_ClassInfo_CDC_Device_t VirtualSerial_CDC_Interface =
 	};
 
 static FILE USBSerialStream;
-
+static volatile int16_t phoneBuffer[100];
+static volatile int16_t bufferLength = 1;
+static volatile int16_t callingNumber[10];
+static volatile int16_t numbers = 0;
+volatile static bool bDebug = false;
+volatile int16_t iRead = 0;
+volatile static bool ConfigSuccess = true;
 
 void uart_put( unsigned char data )
 {
@@ -48,11 +53,6 @@ unsigned char uart_get( void )
 	while ( !(UCSR1A & (1<<RXC1)) );
 	return UDR1;
 }
-
-static volatile int16_t phoneBuffer[100];
-static volatile int16_t bufferLength = 1;
-static volatile int16_t callingNumber[10];
-static volatile int16_t numbers = 0;
 
 unsigned char stringCheck(char *s)
 {
@@ -88,7 +88,7 @@ void bufferCheck()
 {
 	if(bufferLength > 7 && stringCheck("\r\nRING\r\n") == 1)
 	{		
-		if(PIND && (1 << PD0)) // tryb wpuszczaj wybranych
+		if(PIND & (1 << PD0)) // tryb wpuszczaj wybranych
 		{		
 			uart_puts("AT+CLCC\r");
 			_delay_ms(200);
@@ -135,8 +135,7 @@ void bufferCheck()
 		else // wpuszaczaj wszystkich
 		{
 			openGate();
-		}
-			
+		}			
 		
 		bufferLength = 1;			
 		
@@ -145,12 +144,8 @@ void bufferCheck()
 		bufferLength = 1;	
 	}
 
-
 }
 
-volatile static bool bDebug = false;
-volatile int16_t iRead = 0;
-volatile static bool ConfigSuccess = true;
 SIGNAL(USART1_RX_vect)
 {
 	int16_t c = UDR1;

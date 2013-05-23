@@ -4,6 +4,8 @@
 #include <avr/interrupt.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <avr/eeprom.h>
 
 #include "Descriptors.h"
 #include <LUFA/Drivers/USB/USB.h>
