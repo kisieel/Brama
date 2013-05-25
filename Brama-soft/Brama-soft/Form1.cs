@@ -110,6 +110,12 @@ namespace Brama_soft
 
         private void button3_Click(object sender, EventArgs e)
         {
+            if (listBox1.Items.Count < 1)
+            {
+                MessageBox.Show("Brak numerów!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            
             port.Write("*");
 
             for (int i = 0; i < listBox1.Items.Count; i++)
@@ -131,6 +137,16 @@ namespace Brama_soft
 
         private void button1_Click(object sender, EventArgs e)
         {
+            long liczba = 0;
+            bool b = long.TryParse(textBox1.Text, out liczba);
+
+            if (!b || liczba < 100000000 || liczba > 999999999)
+            {
+                MessageBox.Show("To nie jest numer telefonu!", "Błąd", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+
             listBox1.Items.Add(textBox1.Text);
             textBox1.Text = "";
         }
